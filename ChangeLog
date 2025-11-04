@@ -1,0 +1,17 @@
+Tue Nov  4 06:16:49 2025  Rob Lauer  <rclauer@gmail.com>
+
+	[BigBang]:
+	* .gitignore: new
+	* ChangeLog: new
+	* Makefile: new
+	* README.md: new
+	* VERSION: new
+	* buildspec.yml: new
+	* lib/Config/Resolver/Plugin/SSM.pm.in: new
+	* requires: new
+	* t/01-ssm.t: new
+	* t/99_integration.t: new
+	* test-requires: new
+	* version.mk: new
+
+

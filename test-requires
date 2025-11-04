@@ -1,0 +1,4 @@
+Config::Resolver        1.0.0
+Readonly                2.05
+Config::Resolver::Utils 1.0.1
+JSON                    4.10

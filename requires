@@ -1,0 +1,5 @@
+Amazon::API::SSM         2.1.5
+Amazon::Credentials      1.1.25
+Class::Accessor::Fast    0.51
+Config::Resolver::Utils  1.0.0
+Readonly                 2.05

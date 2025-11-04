@@ -1,0 +1,8 @@
+\#*
+**/*.pm
+**/*.pl
+*.tmp
+*.tar.gz
+provides
+resources
+extra-files
