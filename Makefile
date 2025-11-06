@@ -1,4 +1,8 @@
 #-*- mode: makefile; -*-
+#-*- mode: makefile; -*-
+SHELL := /bin/bash
+
+.SHELLFLAGS := -ec
 
 MODULE = Config::Resolver::Plugin::SSM
 

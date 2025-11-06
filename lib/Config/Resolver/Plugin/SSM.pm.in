@@ -11,7 +11,7 @@ use Scalar::Util qw(reftype);
 use Data::Dumper;
 use Config::Resolver::Utils qw(to_boolean is_array);
 
-our @OPTIONS = qw(order debug ssm credentials log_level endpoint_url warning_level);
+our @OPTIONS = qw(order debug ssm credentials log_level endpoint_url warning_level load );
 
 __PACKAGE__->follow_best_practice;
 __PACKAGE__->mk_accessors(@OPTIONS);
@@ -81,6 +81,10 @@ sub init {
 
   $self->set_ssm($ssm);
 
+  if ( $self->get_load ) {
+    $self->load;
+  }
+
   return;
 }
 
@@ -121,6 +125,85 @@ sub get_ssm_parameter {
   }
 
   return $value;
+}
+
+########################################################################
+sub load {
+########################################################################
+  my ($self) = @_;
+
+  my $file = $self->get_load;
+
+  if ( !-t STDIN ) {
+    $file = q{-};
+  }
+
+  croak "ERROR: cannot load file - $file not found\n"
+    if $file ne q{-} && !-e $file;
+
+  my $parameters = fetch_parameters($file);
+
+  foreach my $key ( keys %{$parameters} ) {
+    my $value           = $parameters->{$key}->{value};
+    my $with_encryption = $parameters->{$key}->{encrypted};
+
+    $self->put_ssm_parameter( $key, $value, $with_encryption );
+  }
+
+  return;
+}
+
+########################################################################
+sub fetch_parameters {
+########################################################################
+  my ($file) = @_;
+
+  if ( $file eq q{-} ) {
+    local $RS = undef;
+
+    my $content = <>;
+
+    require YAML::Tiny;
+    YAML::Tiny->import('Load');
+
+    my $parameters = eval { Load($content); };
+
+    return $parameters
+      if ref $parameters;
+
+    require JSON;
+    JSON->import('from_json');
+
+    # we probably want this to blow up if the input is not valid JSON
+    return from_json($content);
+  }
+
+  ######################################################################
+  # file must be either .ya?ml or .json
+  ######################################################################
+  if ( $file =~ /[.]ya?ml$/xsm ) {
+    require YAML::Tiny;
+
+    YAML::Tiny->import('LoadFile');
+    return LoadFile($file);
+  }
+
+  return
+    if $file !~ /[.]json$/xsm;
+
+  require JSON;
+  JSON->import('from_json');
+
+  local $RS = undef;
+
+  open my $fh, '<', $file
+    or croak "ERROR: could not load $file\n$OS_ERROR";
+
+  my $content = <>;
+
+  close $fh;
+
+  return from_json($content);
 }
 
 ########################################################################
@@ -228,6 +311,69 @@ Default: C<'info'>
 
 Sets the warning level for parameter resolution.
 Default: C<'error'>
+
+=back
+
+=head1 ON-DEMAND DATA SEEDING (THE C<load> OPTION)
+
+This plugin includes a powerful feature to "seed" an SSM Parameter
+Store from a local YAML or JSON file [cite: 900, 902-903]. This is
+especially useful for initializing a local development environment
+like LocalStack.
+
+This feature is triggered by providing the C<load> option with a
+path to a file. When the plugin is initialized, it will:
+
+1.  Check if the C<load> option is present.
+2.  If it is, it will parse the specified file[cite: 900].
+3.  It will then iterate over every top-level key in the file and
+    call C<PutParameter> to store its value in SSM [cite: 900-901, 906].
+
+=head2 File Format
+
+The seed file must be a YAML or JSON file. The file should be a
+hash where each key is the full SSM parameter name, and its
+value is a hash containing a C<value> and an optional C<encrypted>
+flag.
+
+B<Example C<local-secrets.yml>:**
+  
+  /my-app/database/host:
+    value: "localhost"
+  
+  /my-app/database/password:
+    value: "MyS3cret!"
+    encrypted: true
+
+The plugin will automatically set the SSM parameter `Type` to
+C<SecureString> if C<encrypted> is true, or C<String> if it
+is false or omitted[cite: 906].
+
+=head2 Example Usage
+
+This feature is designed to be run using C<config-resolver.pl>'s
+"setup-only" execution mode (by running it without a command
+like C<resolve> or C<dump>).
+
+To load the C<local-secrets.yml> file into your LocalStack
+endpoint, you would run:
+
+  $ config-resolver.pl \
+      --plugins SSM \
+      --plugin ssm:load=local-secrets.yml \
+      --plugin ssm:endpoint_url=http://localhost:4566
+
+This command will:
+
+=over 4
+
+=item Initialize the C<SSM> plugin.
+
+=item The plugin's C<init> method will see the C<load> flag and
+execute the data seeding.
+
+=item The C<config-resolver.pl> script will then exit cleanly because
+no command was provided.
 
 =back
 

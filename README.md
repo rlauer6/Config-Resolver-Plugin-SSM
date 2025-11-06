@@ -80,6 +80,63 @@ This plugin accepts the following keys in its configuration hash:
     Sets the warning level for parameter resolution.
     Default: `'error'`
 
+# ON-DEMAND DATA SEEDING (THE `load` OPTION)
+
+This plugin includes a powerful feature to "seed" an SSM Parameter
+Store from a local YAML or JSON file \[cite: 900, 902-903\]. This is
+especially useful for initializing a local development environment
+like LocalStack.
+
+This feature is triggered by providing the `load` option with a
+path to a file. When the plugin is initialized, it will:
+
+1\.  Check if the `load` option is present.
+2\.  If it is, it will parse the specified file\[cite: 900\].
+3\.  It will then iterate over every top-level key in the file and
+    call `PutParameter` to store its value in SSM \[cite: 900-901, 906\].
+
+## File Format
+
+The seed file must be a YAML or JSON file. The file should be a
+hash where each key is the full SSM parameter name, and its
+value is a hash containing a `value` and an optional `encrypted`
+flag.
+
+**Example `local-secrets.yml`:\*\***
+
+    /my-app/database/host:
+      value: "localhost"
+    
+    /my-app/database/password:
+      value: "MyS3cret!"
+      encrypted: true
+
+The plugin will automatically set the SSM parameter \`Type\` to
+`SecureString` if `encrypted` is true, or `String` if it
+is false or omitted\[cite: 906\].
+
+## Example Usage
+
+This feature is designed to be run using `config-resolver.pl`'s
+"setup-only" execution mode (by running it without a command
+like `resolve` or `dump`).
+
+To load the `local-secrets.yml` file into your LocalStack
+endpoint, you would run:
+
+    $ config-resolver.pl \
+        --plugins SSM \
+        --plugin ssm:load=local-secrets.yml \
+        --plugin ssm:endpoint_url=http://localhost:4566
+
+This command will:
+
+- Initialize the `SSM` plugin.
+- The plugin's `init` method will see the `load` flag and
+execute the data seeding.
+- The `config-resolver.pl` script will then exit cleanly because
+no command was provided.
+
 # METHODS
 
 ## new( $options\_hash\_ref )
@@ -103,8 +160,16 @@ Stores a value to AWS Parameter Store.
 
 # AUTHOR
 
-Rob Lauer - <bigfoot@cpan.org>
+Rob Lauer - <rclauer@gmail.com>
 
 # SEE ALSO
 
 [Amazon::API::SSM](https://metacpan.org/pod/Amazon%3A%3AAPI%3A%3ASSM), [Amazon::Credentials](https://metacpan.org/pod/Amazon%3A%3ACredentials), [Config::Resolver](https://metacpan.org/pod/Config%3A%3AResolver)
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 339:
+
+    Unterminated B<...> sequence
