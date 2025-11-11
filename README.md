@@ -170,6 +170,6 @@ Rob Lauer - <rclauer@gmail.com>
 
 Hey! **The above document had some coding errors, which are explained below:**
 
-- Around line 339:
+- Around line 343:
 
     Unterminated B<...> sequence

@@ -31,4 +31,6 @@ README.md: $(PERL_MODULES)
 include version.mk
 
 clean:
-	rm -f *.tar.gz lib/*.pm bin/*.pl
+	rm -f *.tar.gz
+	find . -name '*.p[ml]' -exec rm {} \;
+

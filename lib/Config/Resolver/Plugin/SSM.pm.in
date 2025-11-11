@@ -11,7 +11,7 @@ use Scalar::Util qw(reftype);
 use Data::Dumper;
 use Config::Resolver::Utils qw(to_boolean is_array);
 
-our @OPTIONS = qw(order debug ssm credentials log_level endpoint_url warning_level load );
+our @OPTIONS = qw(order debug ssm profile credentials log_level endpoint_url warning_level load );
 
 __PACKAGE__->follow_best_practice;
 __PACKAGE__->mk_accessors(@OPTIONS);
@@ -65,6 +65,7 @@ sub init {
         order              => $order,
         imdsv2             => $ENV{IMDSV2_ENABLED} // $TRUE,
         no_passkey_warning => $TRUE,
+        profile            => $self->get_profile,
       }
     );
   }
@@ -140,6 +141,9 @@ sub load {
 
   croak "ERROR: cannot load file - $file not found\n"
     if $file ne q{-} && !-e $file;
+
+  croak "ERROR: load file must be .ya?ml or .json\n"
+    if $file ne q{-} && $file !~ /[.](?:ya?ml|json)$/xsm;
 
   my $parameters = fetch_parameters($file);
 
